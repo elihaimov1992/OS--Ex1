@@ -6,7 +6,7 @@
  * code that compare between two files and return 2 if equals, else return 1.
  * parts of code takes from : www.geeksforgeeks.org/c-program-compare-two-files-report-mismatches/
  * @return 2 (if equals) , else 1
- * @author Eli Haimov - ID : 308019306
+ * @author Eli Haimov 
  */
 
 int cmpFiles(FILE *fp1,FILE *fp2){
