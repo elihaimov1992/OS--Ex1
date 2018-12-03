@@ -1,64 +1,71 @@
+/**
+ *  Exp : Getting two files and checking if they equals
+ * @param argc
+ * @param argv
+ * @return 2 - if files are equals, else 1
+ *
+ */
+
 #include<stdio.h>
 #include<string.h>
 #include<stdlib.h>
 #include <fcntl.h>
-/**
- * code that compare between two files and return 2 if equals, else return 1.
- * parts of code takes from : www.geeksforgeeks.org/c-program-compare-two-files-report-mismatches/
- * @return 2 (if equals) , else 1
- * @author Eli Haimov 
- */
-
-int cmpFiles(FILE *fp1,FILE *fp2){
-    char ch1 = getc(fp1);
-    char ch2 = getc(fp2);
-    int countErr =0;
-
-        while(ch1 !=EOF && ch2 !=EOF)     // EOF == End Of File
-        {
-            if(ch1 != ch2){
-                countErr++;
-            }
-            ch1=getc(fp1);
-            ch2=getc(fp2);
-
-        }
-    return countErr;
-}
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 
-int main(){
-    FILE *fp1 = fopen("A1.txt", "r");  // opening both file in read only mode
-    FILE *fp2 = fopen("A3.txt", "r");
-    fseek(fp1, 0L, SEEK_END);      // For checking the size of the files
-    fseek(fp2, 0L, SEEK_END);
-    int ch1_size = ftell(fp1);
-    int ch2_size = ftell(fp2);
+int main(int argc, char *argv[]) {
 
-    if(fp1==NULL || fp2==NULL)
-    {
-        printf("Error : Files not open", stderr);
-        exit(0);
-    }
-    else if (ch1_size == ch2_size)       // If size of the files are Equals
-    {
-        int counter = cmpFiles(fp1,fp2);      // Compare function
-        if (counter==0){   // If files are equals
-            printf("are Equals");
-            exit(EXIT_SUCCESS);
-        }
-        else{
-            printf("are not Equals");
-            exit(EXIT_SUCCESS);
-        }
+
+    if (argc != 3) {
+        perror("Error : have not 2 files");
+        return 1;
     }
     else{
-        printf("are not Equals");
-        exit(EXIT_SUCCESS);
+
+        char buffer1, buffer2;
+        int fd_s_1,fd_s_2;
+
+        // only read a two files
+        int fd_1= open(argv[1],O_RDONLY);
+        int fd_2= open(argv[2],O_RDONLY);
+
+
+        // check exists of files
+        if(fd_1<0 || fd_2<0){
+            perror("Error : one of the files aren't exist\n");
+            return 1;
+        }
+
+
+       // compare per chars between fd_1 & fd_2
+        while((fd_s_1= read(fd_1 , &buffer1 , 1))==1 && (fd_s_2 = read(fd_2 , &buffer2 , 1))==1 ){
+            if(buffer1!=buffer2){
+               perror("Error : The files aren't equals\n");
+               return 1;
+           }
+        }
+
+        // compare length of fd_1 & fd_2 - if are equals
+        if((fd_s_1= read(fd_1 , &buffer1 , 1))==1 || (fd_s_2 = read(fd_2 , &buffer2 , 1))==1){
+            if(fd_s_1 != fd_s_2){
+                perror("Error : The length of files aren't equals\n");
+                return 1;
+            }
+        }
+
+
+//         // checking if the files were closed
+//         if(close(fd_1)<0 || close(fd_2)<0){
+//             perror("Error : The files aren't closed - 1\n");
+//             return 1;
+//         }
+
+        printf("Congratulations, the files are equals !");
+         return 2;
     }
 
-    fclose(fp1);
-    fclose(fp2);
-    return 0;
-
 }
+
+
