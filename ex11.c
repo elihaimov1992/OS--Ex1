@@ -39,12 +39,12 @@ int main(int argc, char *argv[]) {
         }
 
 
-       // compare per chars between fd_1 & fd_2
+        // compare per chars between fd_1 & fd_2
         while((fd_s_1= read(fd_1 , &buffer1 , 1))==1 && (fd_s_2 = read(fd_2 , &buffer2 , 1))==1 ){
             if(buffer1!=buffer2){
-               perror("Error : The files aren't equals\n");
-               return 1;
-           }
+                perror("Error : The files aren't equals\n");
+                return 1;
+            }
         }
 
         // compare length of fd_1 & fd_2 - if are equals
@@ -56,16 +56,15 @@ int main(int argc, char *argv[]) {
         }
 
 
-//         // checking if the files were closed
-//         if(close(fd_1)<0 || close(fd_2)<0){
-//             perror("Error : The files aren't closed - 1\n");
-//             return 1;
-//         }
+        // checking if the files were closed
+        if(close(fd_1)<0 || close(fd_2)<0){
+            perror("Error : The files aren't closed\n");
+            return 1;
+        }
 
-        printf("Congratulations, the files are equals !");
-         return 2;
+        printf("2\n");
+        return 2;
     }
 
 }
-
 
