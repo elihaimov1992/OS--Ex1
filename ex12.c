@@ -9,15 +9,15 @@
 #include <unistd.h>
 #include <stdbool.h>
 
-typedef struct student {
-    char path[100];
-    char pathToCFile[100];
-    char name[40];
-    char reason_of_grade[45];
+typedef struct studentStruct {
+    char path[80];
+    char path2C[80];
+    char name[80];
+    char reason_of_grade[80];
     int grade;
-}student;
+}studentStruct;
 
-int static countStudents = 0;
+int countStudents = 0;
 
 
 /**
@@ -40,7 +40,7 @@ int isDirectory(const char *path) {
  * @param filename
  * @return (file extension) dot+1, else ""(empty)
  */
-const char *get_filename_ext(const char *filename) {
+const char *getFilenameExt(const char *filename) {
     const char *dot = strrchr(filename, '.');
     if(!dot || dot == filename) return "";
     return dot + 1;
@@ -50,14 +50,14 @@ const char *get_filename_ext(const char *filename) {
 /**
  * Exp: get directory name from the full path
  * @param path2Dir
- * @return
+ * @return students
  */
-student* fromStudentPath(char* path2Dir){
+studentStruct* fromStudentPath(char* path2Dir){
     DIR *dir;
     struct dirent *dirnt;
     strcat(path2Dir,"/");
     int i = 0;
-    student* students = (student*)malloc(sizeof(student));
+    studentStruct* students = (studentStruct*)malloc(sizeof(studentStruct));
     if ((dir = opendir (path2Dir)) == NULL) {
         perror ("cannot open this directory");
         exit(1);
@@ -72,7 +72,7 @@ student* fromStudentPath(char* path2Dir){
                     strcpy((students + i)->name, dirnt->d_name);
                     strcpy((students + i)->path, path);
                     i++;
-                    students = (student*)realloc(students,((i+1)*sizeof(student)));
+                    students = (studentStruct*)realloc(students,((i+1)*sizeof(studentStruct)));
                 }
                 free(path);
             }
@@ -95,7 +95,7 @@ char* inCFile(char* path2Dir){
         DIR *dir;
         struct dirent *dirnt;
         strcat(path2Dir,"/");
-        student* students = (student*)malloc(sizeof(student));
+        studentStruct* students = (studentStruct*)malloc(sizeof(studentStruct));
         if ((dir = opendir (path2Dir)) == NULL) {
             perror ("cannot open directory");
             exit(1);
@@ -107,7 +107,7 @@ char* inCFile(char* path2Dir){
                     strcpy(path,path2Dir);
                     strcat(path,dirnt->d_name);
                     if(!isDirectory(path)){
-                        if(!strcmp(get_filename_ext(path),"c")){
+                        if(!strcmp(getFilenameExt(path),"c")){
                             return path;
                         }
                     }
@@ -127,10 +127,10 @@ char* inCFile(char* path2Dir){
  * Exp: checking if c file exist in students folder, if non-exist, write "NO_C_FILE" in reason_of_grade.
  * @param students
  */
-void checkIfCFileExist(student* students){
+void checkIfCFileExist(studentStruct* students){
     for(size_t i = 0 ; i< countStudents; i++){
-        strcpy((students + i)->pathToCFile,inCFile((students + i)->path));
-        if(!strcmp((students + i)->pathToCFile,"NO_C_FILE")){
+        strcpy((students + i)->path2C,inCFile((students + i)->path));
+        if(!strcmp((students + i)->path2C,"NO_C_FILE")){
             strcpy((students + i)->reason_of_grade,"NO_C_FILE");
         }
     }
@@ -141,71 +141,23 @@ void checkIfCFileExist(student* students){
  * Exp: compile c file of student
  * @param students
  */
-void compile(student* students){
+void compilation(studentStruct* students){
     for(size_t i = 0 ; i< countStudents; i++){
-        if(strcmp((students + i)->pathToCFile,"NO_C_FILE")){
-            pid_t child_pid = fork();
-            int childSt;
-            if(child_pid){
-                waitpid(child_pid,&childSt,0);
-                if (WIFEXITED(childSt)&& WEXITSTATUS(childSt)) {
+        if(strcmp((students + i)->path2C,"NO_C_FILE")){
+            pid_t pid = fork();
+            int pidStatus;
+            if(pid){
+                waitpid(pid,&pidStatus,0);
+                if (WIFEXITED(pidStatus)&& WEXITSTATUS(pidStatus)) {
                     strcpy((students + i)->reason_of_grade,"COMPILATION_ERROR");
-                };
-            }
-            else{
-                char name[25] = "";
-                strcpy(name,(students + i)->name);
-                strcat(name,".out");
-                char *args[]={"gcc",(students + i)->pathToCFile,"-o",name,NULL};
-                execvp(args[0],args);
-            }
-        }
-    }
-}
-
-
-/**
- * Exp: compare between global output and output of a student
- * @param students
- * @param outputFile
- */
-void cmp(student* students, char* outputFile){
-    for(size_t i = 0 ; i< countStudents; i++){
-        if(!strcmp((students + i)->reason_of_grade,"")){
-            pid_t child_pid = fork();
-            int childSt;
-            char studentOutput[25] = "";
-            strcpy(studentOutput,(students + i)->name);
-            strcat(studentOutput,".txt");
-            if(child_pid){
-                waitpid(child_pid,&childSt,0);
-                if (WIFEXITED(childSt)) {
-                    if(WEXITSTATUS(childSt) == 1){
-                        strcpy((students + i)->reason_of_grade,"BAD_OUTPUT");
-                    }
-                    else if(WEXITSTATUS(childSt) == 2){
-                        strcpy((students + i)->reason_of_grade,"GREAT_JOB");
-                        (students + i)->grade = 100;
-                    }
-                    else{
-                        perror("Error: this is not 1 and not 2");
-                        exit(1);
-                    }
-                    char cmpP[25] = "";
-                    strcat(cmpP,(students + i)->name);
-                    strcat(cmpP,".out");
-                    if(unlink(studentOutput) < 0){
-                        perror("Error : file cannot deleted");
-                        exit(1);
-                    }
-                    if(unlink(cmpP) < 0){
-                        perror("Error : file cannot deleted");
-                        exit(1);
-                    }
+                    (students + i)->grade = 0;
                 }
             }
             else{
-                char *args[]={"./bin/comp.out",studentOutput,outputFile,NULL};
+                char name[80] = "";
+                strcpy(name,(students + i)->name);
+                strcat(name,".out");
+                char *args[]={"gcc",(students + i)->path2C,"-o",name,NULL};
                 execvp(args[0],args);
             }
         }
@@ -218,18 +170,18 @@ void cmp(student* students, char* outputFile){
  * @param students
  * @param inputFile
  */
-void FuncRun(student* students, char* inputFile){
+void FuncRun(studentStruct* students, char* inputFile){
     for(size_t i = 0 ; i< countStudents; i++){      //if student has no comment yet
         if(!strcmp((students + i)->reason_of_grade,"")){
-            pid_t child_pid = fork();
-            int childSt;
-            if(child_pid){
-                waitpid(child_pid,&childSt,0);
+            pid_t pid = fork();
+            int pidStatus;
+            if(pid){
+                waitpid(pid,&pidStatus,0);
             }
             else{
-                char cmd[25] = "./";
-                strcat(cmd,(students + i)->name);
-                strcat(cmd,".out");
+                char ps[25] = "./";
+                strcat(ps,(students + i)->name);
+                strcat(ps,".out");
                 char filename[22] = "";
                 strcpy(filename,(students + i)->name);
                 strcat(filename,".txt");
@@ -259,7 +211,56 @@ void FuncRun(student* students, char* inputFile){
                     perror("Error : file cannot close");
                     exit(1);
                 }
-                char *args[]={cmd,NULL};
+                char *args[]={ps,NULL};
+                execvp(args[0],args);
+            }
+        }
+    }
+}
+
+
+/**
+ * Exp: compare between global output and output of a student
+ * @param students
+ * @param outputFile
+ */
+void cmp(studentStruct* students, char* outputFile){
+    for(size_t i = 0 ; i< countStudents; i++){
+        if(!strcmp((students + i)->reason_of_grade,"")){
+            pid_t pid = fork();
+            int pid_status;
+            char studentOutput[40] = "";
+            strcpy(studentOutput,(students + i)->name);
+            strcat(studentOutput,".txt");
+            if(pid){
+                waitpid(pid,&pid_status,0);
+                if (WIFEXITED(pid_status)) {
+                    if(WEXITSTATUS(pid_status) == 1){
+                        strcpy((students + i)->reason_of_grade,"BAD_OUTPUT");
+                    }
+                    else if(WEXITSTATUS(pid_status) == 2){
+                        strcpy((students + i)->reason_of_grade,"GREAT_JOB");
+                        (students + i)->grade = 100;
+                    }
+                    else{
+                        perror("Error: this is not 1 and not 2");
+                        exit(1);
+                    }
+                    char cmpP[40] = "";
+                    strcat(cmpP,(students + i)->name);
+                    strcat(cmpP,".out");
+                    if(unlink(studentOutput) < 0){
+                        perror("Error : file cannot deleted");
+                        exit(1);
+                    }
+                    if(unlink(cmpP) < 0){
+                        perror("Error : file cannot deleted");
+                        exit(1);
+                    }
+                }
+            }
+            else{
+                char *args[]={"./comp.out",studentOutput,outputFile,NULL};
                 execvp(args[0],args);
             }
         }
@@ -271,7 +272,7 @@ void FuncRun(student* students, char* inputFile){
  * Exp: writes all students results to csv file
  * @param students
  */
-void write2Csv(student* students){
+void write2Csv(studentStruct* students){
     int csv_FD = open("results.csv", O_APPEND | O_WRONLY | O_CREAT, S_IRUSR | S_IRGRP | S_IROTH | S_IWUSR | S_IWGRP | S_IWOTH);
     if(csv_FD < 0){
         perror("Error : cannot open results.csv");
@@ -319,9 +320,9 @@ int main(int argc, char *argv[]){
         scanf("%s",inputPath);
         scanf("%s",outputPath);
         if(isDirectory(globalPath)){
-            student* students = fromStudentPath(globalPath);
+            studentStruct* students = fromStudentPath(globalPath);
             checkIfCFileExist(students);
-            compile(students);
+            compilation(students);
             FuncRun(students,inputPath);
             cmp(students,outputPath);
             write2Csv(students);
