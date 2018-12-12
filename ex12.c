@@ -59,7 +59,7 @@ studentStruct* fromStudentPath(char* path2Dir){
     int i = 0;
     studentStruct* students = (studentStruct*)malloc(sizeof(studentStruct));
     if ((dir = opendir (path2Dir)) == NULL) {
-        perror ("cannot open this directory");
+        perror ("Error: cannot open this directory");
         exit(1);
     }
     else {
@@ -97,7 +97,7 @@ char* inCFile(char* path2Dir){
         strcat(path2Dir,"/");
         studentStruct* students = (studentStruct*)malloc(sizeof(studentStruct));
         if ((dir = opendir (path2Dir)) == NULL) {
-            perror ("cannot open directory");
+            perror ("Error: cannot open directory");
             exit(1);
         }
         else {
@@ -128,7 +128,7 @@ char* inCFile(char* path2Dir){
  * @param students
  */
 void checkIfCFileExist(studentStruct* students){
-    for(size_t i = 0 ; i< countStudents; i++){
+    for(int i = 0 ; i< countStudents; i++){
         strcpy((students + i)->path2C,inCFile((students + i)->path));
         if(!strcmp((students + i)->path2C,"NO_C_FILE")){
             strcpy((students + i)->reason_of_grade,"NO_C_FILE");
@@ -142,7 +142,7 @@ void checkIfCFileExist(studentStruct* students){
  * @param students
  */
 void compilation(studentStruct* students){
-    for(size_t i = 0 ; i< countStudents; i++){
+    for(int i = 0 ; i< countStudents; i++){
         if(strcmp((students + i)->path2C,"NO_C_FILE")){
             pid_t pid = fork();
             int pidStatus;
@@ -171,7 +171,7 @@ void compilation(studentStruct* students){
  * @param inputFile
  */
 void FuncRun(studentStruct* students, char* inputFile){
-    for(size_t i = 0 ; i< countStudents; i++){      //if student has no comment yet
+    for(int i = 0 ; i< countStudents; i++){
         if(!strcmp((students + i)->reason_of_grade,"")){
             pid_t pid = fork();
             int pidStatus;
@@ -188,27 +188,27 @@ void FuncRun(studentStruct* students, char* inputFile){
                 int inp = open(inputFile,O_RDONLY,0);
                 int out = open(filename, O_WRONLY | O_CREAT, S_IRUSR | S_IRGRP | S_IROTH | S_IWUSR | S_IWGRP | S_IWOTH);
                 if (inp < 0){
-                    perror("Error : cannot open input file");
+                    perror("Error: cannot open input file");
                     exit(1);
                 }
                 if (out < 0){
-                    perror("Error : cannot open output file");
+                    perror("Error: cannot open output file");
                     exit(1);
                 }
                 if ((dup2(inp,0)) < 0){
-                    perror("Error : cannot redirect");
+                    perror("Error: cannot redirect");
                     exit(1);
                 }
                 if ((dup2(out,1)) < 0){
-                    perror("Error : cannot redirect");
+                    perror("Error: cannot redirect");
                     exit(1);
                 }
                 if(close(inp) < 0){
-                    perror("Error : file cannot close");
+                    perror("Error: file cannot close");
                     exit(1);
                 }
                 if(close(out) < 0){
-                    perror("Error : file cannot close");
+                    perror("Error: file cannot close");
                     exit(1);
                 }
                 char *args[]={ps,NULL};
@@ -224,43 +224,44 @@ void FuncRun(studentStruct* students, char* inputFile){
  * @param students
  * @param outputFile
  */
-void cmp(studentStruct* students, char* outputFile){
-    for(size_t i = 0 ; i< countStudents; i++){
+void cmp(studentStruct* students, char* FileOutput){
+    for(int i = 0 ; i< countStudents; i++){
         if(!strcmp((students + i)->reason_of_grade,"")){
             pid_t pid = fork();
-            int pid_status;
-            char studentOutput[40] = "";
-            strcpy(studentOutput,(students + i)->name);
-            strcat(studentOutput,".txt");
+            int pidStatus;
+            char OutputStudent[40] = "";
+            strcpy(OutputStudent,(students + i)->name);
+            strcat(OutputStudent,".txt");
             if(pid){
-                waitpid(pid,&pid_status,0);
-                if (WIFEXITED(pid_status)) {
-                    if(WEXITSTATUS(pid_status) == 1){
+                waitpid(pid,&pidStatus,0);
+                if (WIFEXITED(pidStatus)) {
+                    if(WEXITSTATUS(pidStatus) == 1){
                         strcpy((students + i)->reason_of_grade,"BAD_OUTPUT");
+                        (students + i)->grade = 0;
                     }
-                    else if(WEXITSTATUS(pid_status) == 2){
+                    else if(WEXITSTATUS(pidStatus) == 2){
                         strcpy((students + i)->reason_of_grade,"GREAT_JOB");
                         (students + i)->grade = 100;
                     }
                     else{
-                        perror("Error: this is not 1 and not 2");
+                        perror("Error: this is not 1 and/or not 2");
                         exit(1);
                     }
                     char cmpP[40] = "";
                     strcat(cmpP,(students + i)->name);
                     strcat(cmpP,".out");
-                    if(unlink(studentOutput) < 0){
-                        perror("Error : file cannot deleted");
+                    if(unlink(OutputStudent) < 0){
+                        perror("Error: file cannot deleted");
                         exit(1);
                     }
                     if(unlink(cmpP) < 0){
-                        perror("Error : file cannot deleted");
+                        perror("Error: file cannot deleted");
                         exit(1);
                     }
                 }
             }
             else{
-                char *args[]={"./comp.out",studentOutput,outputFile,NULL};
+                char *args[]={"./comp.out",OutputStudent,FileOutput,NULL};
                 execvp(args[0],args);
             }
         }
@@ -275,26 +276,26 @@ void cmp(studentStruct* students, char* outputFile){
 void write2Csv(studentStruct* students){
     int csv_FD = open("results.csv", O_APPEND | O_WRONLY | O_CREAT, S_IRUSR | S_IRGRP | S_IROTH | S_IWUSR | S_IWGRP | S_IWOTH);
     if(csv_FD < 0){
-        perror("Error : cannot open results.csv");
+        perror("Error: cannot open results.csv");
         exit(1);
     }
-    for(size_t i = 0 ; i< countStudents; i++){
-        char line[50]="";
-        char student_num[5];
-        sprintf(student_num,"%d",(students + i)->grade);
+    for(int i = 0 ; i< countStudents; i++){
+        char numberOfStudent[10];
+        char line[80]="";
+        sprintf(numberOfStudent,"%d",(students + i)->grade);
         strcat(line,(students + i)->name);
         strcat(line,",");
-        strcat(line,student_num);
+        strcat(line,numberOfStudent);
         strcat(line,",");
         strcat(line,(students + i)->reason_of_grade);
         strcat(line,"\n");
         if(!write(csv_FD,line,strlen(line))){
-            perror("Error : cannot write to results.csv");
+            perror("Error: cannot write to results.csv");
             exit(1);
         }
     }
     if(close(csv_FD) < 0){
-        perror("Error : File cannot close");
+        perror("Error: File cannot close");
         exit(1);
     }
 }
@@ -302,18 +303,18 @@ void write2Csv(studentStruct* students){
 
 int main(int argc, char *argv[]){
     if(argc!=2){
-        perror("Error : have not only one path");
+        perror("Error: have not only one path");
         exit(1);
     }
     else{
         int configFD = open(argv[1],O_RDONLY,0);
         char globalPath[80], inputPath[80] , outputPath[80];
         if(configFD<0){
-            perror("Error : cannot open configuration file");
+            perror("Error: cannot open configuration file");
             exit(1);
         }
         if((configFD = dup2(configFD,0)) < 0){
-            perror("Error : cannot redirect");
+            perror("Error: cannot redirect");
             exit(1);
         }
         scanf("%s",globalPath);
@@ -329,7 +330,7 @@ int main(int argc, char *argv[]){
             free(students);
         }
         if(close(configFD)<0){
-            perror("Error : file cannot closed");
+            perror("Error: file cannot closed");
             exit(1);
         }
     }
