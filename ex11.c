@@ -62,9 +62,10 @@ int main(int argc, char *argv[]) {
             return 1;
         }
 
-        printf("2\n");
+        // the files are equals
         return 2;
     }
 
 }
+
 
